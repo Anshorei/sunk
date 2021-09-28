@@ -150,8 +150,9 @@ impl Client {
             .url
             .host_str()
             .ok_or_else(|| Error::Url(UrlError::Address))?;
+        let path = self.url.path();
 
-        let mut url = [scheme, "://", addr, "/rest/"].concat();
+        let mut url = [scheme, "://", addr, path, "/rest/"].concat();
         url.push_str(query);
         url.push_str("?");
         url.push_str(&self.auth.to_url(self.target_ver));
@@ -178,6 +179,7 @@ impl Client {
         let uri: Url = self.build_url(query, args)?.parse().unwrap();
 
         info!("Connecting to {}", uri);
+        println!("Connecting to {}", uri);
         let mut res = self.reqclient.get(uri).send()?;
 
         if res.status().is_success() {

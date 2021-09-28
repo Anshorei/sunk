@@ -44,7 +44,7 @@ pub struct Song {
     /// Duration of the song, in seconds.
     pub duration: Option<u64>,
     /// The absolute path of the song in the server database.
-    path: String,
+    path: Option<String>,
     /// Will always be "song".
     media_type: String,
     /// Bit rate the song will be downsampled to.
@@ -270,9 +270,9 @@ impl<'de> Deserialize<'de> for Song {
             transcoded_suffix: Option<String>,
             duration: Option<u64>,
             bit_rate: Option<u64>,
-            path: String,
+            path: Option<String>,
             is_video: Option<bool>,
-            play_count: u64,
+            play_count: Option<u64>,
             disc_number: Option<u64>,
             created: String,
             album_id: Option<String>,
@@ -282,14 +282,19 @@ impl<'de> Deserialize<'de> for Song {
         }
 
         let raw = _Song::deserialize(de)?;
+        let trim_to_digits = |c: char| !c.is_digit(10);
 
         Ok(Song {
-            id: raw.id.parse().unwrap(),
+            id: raw.id.trim_matches(trim_to_digits).parse().unwrap(),
             title: raw.title,
             album: raw.album,
-            album_id: raw.album_id.map(|i| i.parse().unwrap()),
+            album_id: raw
+                .album_id
+                .map(|i| i.trim_matches(trim_to_digits).parse().unwrap()),
             artist: raw.artist,
-            artist_id: raw.artist_id.map(|i| i.parse().unwrap()),
+            artist_id: raw
+                .artist_id
+                .map(|i| i.trim_matches(trim_to_digits).parse().unwrap()),
             cover_id: raw.cover_art,
             track: raw.track,
             year: raw.year,
