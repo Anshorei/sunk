@@ -11,18 +11,18 @@ use {Client, Error, HlsPlaylist, Media, Result, Streamable};
 #[derive(Debug, Clone)]
 pub struct Song {
     /// Unique identifier for the song.
-    pub id: u64,
+    pub id: String,
     /// Title of the song. Prefers the song's ID3 tags, but will fall back to
     /// the file name.
     pub title: String,
     /// Album the song belongs to. Reads from the song's ID3 tags.
     pub album: Option<String>,
     /// The ID of the released album.
-    album_id: Option<u64>,
+    album_id: Option<String>,
     /// Credited artist for the song. Reads from the song's ID3 tags.
     pub artist: Option<String>,
     /// The ID of the releasing artist.
-    artist_id: Option<u64>,
+    artist_id: Option<String>,
     /// Position of the song in the album.
     pub track: Option<u64>,
     /// Year the song was released.
@@ -74,7 +74,7 @@ impl Song {
     where
         U: Into<Option<usize>>,
     {
-        let args = Query::with("id", self.id)
+        let args = Query::with("id", self.id.clone())
             .arg("count", count.into())
             .build();
 
@@ -148,7 +148,7 @@ impl Song {
     /// empty array) to disable adaptive streaming, or given a single value to
     /// force streaming at that bit rate.
     pub fn hls(&self, client: &Client, bit_rates: &[u64]) -> Result<HlsPlaylist> {
-        let args = Query::with("id", self.id)
+        let args = Query::with("id", self.id.clone())
             .arg_list("bitrate", bit_rates)
             .build();
 
@@ -159,23 +159,23 @@ impl Song {
 
 impl Streamable for Song {
     fn stream(&self, client: &Client) -> Result<Vec<u8>> {
-        let mut q = Query::with("id", self.id);
+        let mut q = Query::with("id", self.id.clone());
         q.arg("maxBitRate", self.stream_br);
         client.get_bytes("stream", q)
     }
 
     fn stream_url(&self, client: &Client) -> Result<String> {
-        let mut q = Query::with("id", self.id);
+        let mut q = Query::with("id", self.id.clone());
         q.arg("maxBitRate", self.stream_br);
         client.build_url("stream", q)
     }
 
     fn download(&self, client: &Client) -> Result<Vec<u8>> {
-        client.get_bytes("download", Query::with("id", self.id))
+        client.get_bytes("download", Query::with("id", self.id.clone()))
     }
 
     fn download_url(&self, client: &Client) -> Result<String> {
-        client.build_url("download", Query::with("id", self.id))
+        client.build_url("download", Query::with("id", self.id.clone()))
     }
 
     fn encoding(&self) -> &str {
@@ -282,19 +282,14 @@ impl<'de> Deserialize<'de> for Song {
         }
 
         let raw = _Song::deserialize(de)?;
-        let trim_to_digits = |c: char| !c.is_digit(10);
 
         Ok(Song {
-            id: raw.id.trim_matches(trim_to_digits).parse().unwrap(),
+            id: raw.id,
             title: raw.title,
             album: raw.album,
-            album_id: raw
-                .album_id
-                .map(|i| i.trim_matches(trim_to_digits).parse().unwrap()),
+            album_id: raw.album_id,
             artist: raw.artist,
-            artist_id: raw
-                .artist_id
-                .map(|i| i.trim_matches(trim_to_digits).parse().unwrap()),
+            artist_id: raw.artist_id,
             cover_id: raw.cover_art,
             track: raw.track,
             year: raw.year,
